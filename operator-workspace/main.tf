@@ -10,17 +10,36 @@ terraform {
 }
 
 data "terraform_remote_state" "admin" {
-  backend = "local"
+  backend = "remote"
 
   config = {
     path = var.path
   }
 }
 
-data "vault_aws_access_credentials" "creds" {
-  backend = data.terraform_remote_state.admin.outputs.backend
-  role    = data.terraform_remote_state.admin.outputs.role
+
+   
+provider "vault" {
+  # HCP Vault Configuration options
+  address = var.vault_address
+  namespace = var.vault_namespace
+  auth_login {
+    path = "auth/userpass/login/${var.login_username}"
+    namespace = var.vault_namespace
+    
+    parameters = {
+      password = var.login_password
+    }
+  }
+  
 }
+
+# ask Vault to get credentials to use for deployment to AWS
+data "vault_aws_access_credentials" "aws_creds" {
+  backend = "aws"
+  role     = "cloud_user"
+}
+
 
 provider "aws" {
   region     = var.region
